@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocabulary Pro</title>
+
+<style>
+body{
+    font-family:Arial;
+    margin:0;
+    padding:0;
+    background:#eaf2ff;
+    direction:rtl;
+    transition:.3s;
+}
+.dark{background:#0d1b2a;color:#fff;}
+header{
+    background:#1976d2;
+    padding:15px;
+    text-align:center;
+    color:#fff;
+    font-size:22px;
+    font-weight:bold;
+}
+.container{
+    padding:20px;
+    max-width:650px;
+    margin:auto;
+}
+input,textarea,select{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border:1px solid #90caf9;
+    border-radius:10px;
+    font-size:16px;
+    background:white;
+}
+button{
+    width:100%;
+    padding:12px;
+    background:#1976d2;
+    border:none;
+    color:white;
+    font-size:18px;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:10px;
+}
+button:hover{background:#115293;}
+.word-box{
+    background:white;
+    padding:15px;
+    margin:10px 0;
+    border-radius:12px;
+    box-shadow:0 0 10px #00000010;
+}
+.dark .word-box{
+    background:#1b263b;
+    box-shadow:0 0 10px #ffffff22;
+}
+.delete-btn{
+    background:#c62828;
+    padding:6px 12px;
+    border-radius:7px;
+    color:white;
+    float:left;
+    font-size:13px;
+    cursor:pointer;
+}
+#darkBtn{
+    position:fixed;
+    top:15px;
+    left:15px;
+    padding:10px 15px;
+    background:#0d47a1;
+    color:white;
+    border-radius:10px;
+    cursor:pointer;
+}
+.stats{
+    background:#bbdefb;
+    padding:12px;
+    border-radius:10px;
+    margin:15px 0;
+}
+.dark .stats{background:#1e3d59;}
+</style>
+</head>
+
+<body>
+<header>Vocabulary Pro</header>
+<div id="darkBtn">Dark</div>
+
+<div class="container">
+
+<div class="stats">
+عدد الكلمات المحفوظة: <span id="countWords">0</span><br>
+مستوى التقدم: <span id="progress">0%</span>
+</div>
+
+<input id="wordInput" type="text" placeholder="الكلمة">
+<textarea id="meaningInput" placeholder="المعنى"></textarea>
+
+<select id="levelInput">
+    <option value="easy">سهل</option>
+    <option value="medium">متوسط</option>
+    <option value="hard">صعب</option>
+</select>
+
+<button onclick="addWord()">إضافة كلمة</button>
+
+<input id="searchInput" type="text" placeholder="بحث..." oninput="searchWords()">
+
+<select id="sortSelect" onchange="sortWords()">
+    <option value="az">ترتيب أبجدي A-Z</option>
+    <option value="za">ترتيب Z-A</option>
+</select>
+
+<div id="wordsList"></div>
+<script>
+let words=[];
+
+function addWord(){
+    let w=document.getElementById("wordInput").value.trim();
+    let m=document.getElementById("meaningInput").value.trim();
+    let lvl=document.getElementById("levelInput").value;
+
+    if(!w||!m){alert("أدخل الكلمة والمعنى");return}
+
+    words.push({
+        word:w,
+        meaning:m,
+        level:lvl,
+        reviewDate:getNextReview(lvl)
+    });
+
+    saveData();
+    renderWords();
+    updateStats();
+
+    document.getElementById("wordInput").value="";
+    document.getElementById("meaningInput").value="";
+}
+
+function sortWords(){
+    let type=document.getElementById("sortSelect").value;
+    if(type==="az") words.sort((a,b)=>a.word.localeCompare(b.word));
+    else words.sort((a,b)=>b.word.localeCompare(a.word));
+    renderWords();
+    saveData();
+}
+
+function renderWords(list=words){
+    let box=document.getElementById("wordsList");
+    box.innerHTML="";
+    list.forEach((item,i)=>{
+        box.innerHTML+=`
+        <div class="word-box">
+            <strong>${item.word}</strong>
+            <p>${item.meaning}</p>
+            <p>المستوى: ${item.level}</p>
+            <p>مراجعة: ${item.reviewDate}</p>
+            <span class="delete-btn" onclick="deleteWord(${i})">حذف</span>
+        </div>`;
+    });
+}
+
+function deleteWord(i){
+    words.splice(i,1);
+    saveData();
+    renderWords();
+    updateStats();
+}
+
+function updateStats(){
+    document.getElementById("countWords").innerText=words.length;
+    document.getElementById("progress").innerText=
+        Math.min(100,words.length*5)+"%";
+}
+function getNextReview(level){
+    let today=new Date();
+    if(level==="easy") today.setDate(today.getDate()+1);
+    if(level==="medium") today.setDate(today.getDate()+3);
+    if(level==="hard") today.setDate(today.getDate()+7);
+    return today.toISOString().slice(0,10);
+}
+
+function searchWords(){
+    let txt=document.getElementById("searchInput").value.toLowerCase();
+    let f=words.filter(w=>w.word.toLowerCase().includes(txt));
+    renderWords(f);
+}
+
+function saveData(){
+    localStorage.setItem("vocabData",JSON.stringify(words));
+}
+function loadData(){
+    let d=localStorage.getItem("vocabData");
+    if(d) words=JSON.parse(d);
+    renderWords();
+    updateStats();
+}
+
+document.getElementById("darkBtn").onclick=()=>{
+    document.body.classList.toggle("dark");
+};
+
+function dailyReminder(){
+    setTimeout(()=>{alert("موعد مراجعة الكلمات اليومية!");},5000);
+}
+dailyReminder();
+
+// تصدير TXT
+function exportTXT(){
+    let content="";
+    words.forEach(w=>{
+        content+=`${w.word} : ${w.meaning}\n`;
+    });
+    let blob=new Blob([content],{type:"text/plain"});
+    let url=URL.createObjectURL(blob);
+    let a=document.createElement("a");
+    a.href=url;a.download="words.txt";a.click();
+}
+
+// PDF
+function exportPDF(){
+    let w=window.open("");
+    w.document.write("<h2>قائمة الكلمات</h2>");
+    words.forEach(x=>{
+        w.document.write(`<p><b>${x.word}</b> : ${x.meaning}</p>`);
+    });
+    w.print();
+}
+
+loadData();
+</script>
+
+<button onclick="exportTXT()">تصدير TXT</button>
+<button onclick="exportPDF()">تصدير PDF</button>
+
+</div></body></html>

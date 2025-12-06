@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algebra Rules Extended</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f4f8;
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    background: #2d89ff;
+    color: white;
+    padding: 20px;
+    text-align: center;
+  }
+  .container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 10px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+  }
+  h2 {
+    color: #2d89ff;
+  }
+  .rule {
+    margin: 15px 0;
+    padding: 10px;
+    border-left: 5px solid #2d89ff;
+    background: #eef5ff;
+    border-radius: 5px;
+  }
+  .rule p {
+    margin: 5px 0;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Algebra Rules Extended</h1>
+  <p>Learn 50+ algebra rules with clear explanations</p>
+</header>
+
+<div class="container" id="rulesContainer">
+  <!-- Rules will be inserted here by JavaScript -->
+</div>
+
+<script>
+const algebraRules = [
+  {name:"Commutative Property",formula:"a + b = b + a  |  a × b = b × a",explanation:"The order of numbers does not change the sum or product."},
+  {name:"Associative Property",formula:"(a + b) + c = a + (b + c)  |  (a × b) × c = a × (b × c)",explanation:"Grouping of numbers does not change the sum or product."},
+  {name:"Distributive Property",formula:"a × (b + c) = a × b + a × c",explanation:"Multiplying a number by a sum equals the sum of the products."},
+  {name:"Identity Property",formula:"a + 0 = a  |  a × 1 = a",explanation:"Adding 0 or multiplying by 1 does not change the number."},
+  {name:"Inverse Property",formula:"a + (-a) = 0  |  a × (1/a) = 1 (a ≠ 0)",explanation:"Adding the opposite or multiplying by reciprocal gives the identity."},
+  {name:"Zero Property of Multiplication",formula:"a × 0 = 0",explanation:"Any number multiplied by zero equals zero."},
+  {name:"Power of a Power",formula:"(a^m)^n = a^(m×n)",explanation:"To raise a power to another power, multiply the exponents."},
+  {name:"Product of Powers",formula:"a^m × a^n = a^(m+n)",explanation:"Multiply powers with the same base by adding exponents."},
+  {name:"Quotient of Powers",formula:"a^m / a^n = a^(m-n) (a ≠ 0)",explanation:"Divide powers with the same base by subtracting exponents."},
+  {name:"Power of a Product",formula:"(ab)^n = a^n × b^n",explanation:"A power applied to a product applies to each factor."},
+  {name:"Power of a Quotient",formula:"(a/b)^n = a^n / b^n",explanation:"A power applied to a quotient applies to numerator and denominator."},
+  {name:"Square of a Sum",formula:"(a + b)^2 = a^2 + 2ab + b^2",explanation:"Expanding the square of a sum using distributive property."},
+  {name:"Square of a Difference",formula:"(a - b)^2 = a^2 - 2ab + b^2",explanation:"Expanding the square of a difference."},
+  {name:"Difference of Squares",formula:"a^2 - b^2 = (a + b)(a - b)",explanation:"A squared minus B squared factors into a sum and difference."},
+  {name:"Sum of Cubes",formula:"a^3 + b^3 = (a + b)(a^2 - ab + b^2)",explanation:"Factoring sum of cubes into binomial and trinomial."},
+  {name:"Difference of Cubes",formula:"a^3 - b^3 = (a - b)(a^2 + ab + b^2)",explanation:"Factoring difference of cubes."},
+  {name:"Fraction Addition",formula:"a/b + c/d = (ad + bc) / bd",explanation:"To add fractions, find common denominator and sum numerators."},
+  {name:"Fraction Multiplication",formula:"a/b × c/d = (a×c) / (b×d)",explanation:"Multiply numerators together and denominators together."},
+  {name:"Fraction Division",formula:"(a/b) ÷ (c/d) = (a×d) / (b×c)",explanation:"Dividing fractions is multiplying by the reciprocal."},
+  {name:"Negative Exponent",formula:"a^-n = 1 / a^n (a ≠ 0)",explanation:"A negative exponent means reciprocal of the positive exponent."},
+  {name:"Zero Exponent",formula:"a^0 = 1 (a ≠ 0)",explanation:"Any nonzero number raised to zero equals one."},
+  {name:"Exponent of One",formula:"a^1 = a",explanation:"Any number raised to the power of one is itself."},
+  {name:"Exponent of a Product",formula:"(ab)^n = a^n × b^n",explanation:"Same as before, power distributes over multiplication."},
+  {name:"Exponent of a Quotient",formula:"(a/b)^n = a^n / b^n",explanation:"Same as before, power distributes over division."},
+  {name:"Absolute Value of a Product",formula:"|ab| = |a| × |b|",explanation:"Absolute value of a product is the product of absolute values."},
+  {name:"Absolute Value of a Quotient",formula:"|a/b| = |a| / |b|",explanation:"Absolute value of a quotient is quotient of absolute values."},
+{name:"Square Root of a Product",formula:"√(ab) = √a × √b",explanation:"Square root of a product equals product of square roots."},
+  {name:"Square Root of a Quotient",formula:"√(a/b) = √a / √b",explanation:"Square root of a quotient equals quotient of square roots."},
+  {name:"Linear Equation",formula:"ax + b = 0 ⇒ x = -b/a (a ≠ 0)",explanation:"Solution of a linear equation."},
+  {name:"Quadratic Formula",formula:"ax^2 + bx + c = 0 ⇒ x = [-b ± √(b^2-4ac)] / 2a",explanation:"General solution for quadratic equations."},
+  {name:"Completing the Square",formula:"ax^2 + bx + c = a(x + b/2a)^2 - (b^2-4ac)/4a",explanation:"Transforming quadratic into square form."},
+  {name:"Factoring by Grouping",formula:"ax + ay + bx + by = (a+b)(x+y)",explanation:"Factor by grouping terms in pairs."},
+  {name:"Simple Inequality",formula:"ax + b > 0 ⇒ x > -b/a (a>0)",explanation:"Solve linear inequalities."},
+  {name:"Compound Inequality",formula:"a < x < b",explanation:"Represents range of values for x."},
+  {name:"Absolute Value Equation",formula:"|x| = a ⇒ x = ±a",explanation:"Equation with absolute value."},
+  {name:"Absolute Value Inequality",formula:"|x| < a ⇒ -a < x < a",explanation:"Inequality with absolute value."},
+  {name:"Logarithm Definition",formula:"log_b(x) = y ⇔ b^y = x (b>0, b≠1)",explanation:"Logarithm is the inverse of exponentiation."},
+  {name:"Logarithm of a Product",formula:"log_b(MN) = log_b(M) + log_b(N)",explanation:"Logarithm of a product equals sum of logs."},
+  {name:"Logarithm of a Quotient",formula:"log_b(M/N) = log_b(M) - log_b(N)",explanation:"Logarithm of a quotient equals difference of logs."},
+  {name:"Logarithm of a Power",formula:"log_b(M^p) = p × log_b(M)",explanation:"Exponent comes in front of logarithm."},
+  {name:"Natural Logarithm",formula:"ln(x) = log_e(x)",explanation:"Logarithm with base e (Euler’s number)."},
+  {name:"Exponential Equation",formula:"a^x = b ⇒ x = log_a(b)",explanation:"Solve for exponent using logarithms."},
+  {name:"Binomial Theorem",formula:"(a+b)^n = Σ(k=0 to n) C(n,k)a^(n-k)b^k",explanation:"Expands binomial expressions."},
+  {name:"Sum of Arithmetic Series",formula:"S_n = n/2(a_1 + a_n)",explanation:"Sum of n terms of arithmetic sequence."},
+  {name:"Sum of Geometric Series",formula:"S_n = a(1-r^n)/(1-r) (r≠1)",explanation:"Sum of n terms of geometric sequence."},
+  {name:"Distance Formula",formula:"d = √[(x2-x1)^2 + (y2-y1)^2]",explanation:"Distance between two points in 2D."},
+  {name:"Midpoint Formula",formula:"M = ((x1+x2)/2 , (y1+y2)/2)",explanation:"Midpoint between two points."},
+  {name:"Slope Formula",formula:"m = (y2-y1)/(x2-x1)",explanation:"Slope of a line."},
+  {name:"Point-Slope Form",formula:"y - y1 = m(x - x1)",explanation:"Equation of a line using slope and a point."},
+  {name:"Slope-Intercept Form",formula:"y = mx + b",explanation:"Equation of a line using slope and intercept."},
+  {name:"Standard Form of Line",formula:"Ax + By = C",explanation:"Another common form of linear equation."},
+  {name:"Parallel Lines",formula:"m1 = m2",explanation:"Two lines are parallel if slopes are equal."},
+  {name:"Perpendicular Lines",formula:"m1 × m2 = -1",explanation:"Two lines are perpendicular if product of slopes is -1."},
+{name:"Difference of Cubes Factor",formula:"a^3 - b^3 = (a - b)(a^2 + ab + b^2)",explanation:"Factoring difference of cubes."},
+  {name:"Sum of Cubes Factor",formula:"a^3 + b^3 = (a + b)(a^2 - ab + b^2)",explanation:"Factoring sum of cubes."},
+  {name:"Partial Fraction Decomposition",formula:"1/(x(x+1)) = 1/x - 1/(x+1)",explanation:"Break fractions into simpler parts."},
+  {name:"Complex Conjugate",formula:"a + bi ⇒ a - bi",explanation:"Used to simplify complex numbers."},
+  {name:"Modulus of Complex Number",formula:"|a + bi| = √(a^2 + b^2)",explanation:"Magnitude of a complex number."},
+  {name:"Polar Form",formula:"z = r(cosθ + i sinθ)",explanation:"Represent complex numbers in polar coordinates."},
+  {name:"De Moivre's Theorem",formula:"(cosθ + i sinθ)^n = cos(nθ) + i sin(nθ)",explanation:"Power of complex numbers in polar form."},
+  {name:"Exponential Growth",formula:"P(t) = P0 e^(kt)",explanation:"Models continuous growth or decay."},
+  {name:"Exponential Decay",formula:"A(t) = A0 e^(-kt)",explanation:"Models decay over time."},
+  {name:"Arithmetic Mean",formula:"AM = (a1 + a2 + ... + an)/n",explanation:"Average of numbers."},
+  {name:"Geometric Mean",formula:"GM = (a1×a2×...×an)^(1/n)",explanation:"n-th root of product of numbers."},
+  {name:"Harmonic Mean",formula:"HM = n / (1/a1 + 1/a2 + ... + 1/an)",explanation:"Special mean for rates."},
+  {name:"Factorial",formula:"n! = n × (n-1) × ... × 1",explanation:"Product of all positive integers up to n."},
+  {name:"Permutation",formula:"P(n,r) = n! / (n-r)!",explanation:"Number of arrangements of r objects from n."},
+  {name:"Combination",formula:"C(n,r) = n! / [r!(n-r)!]",explanation:"Number of ways to choose r objects from n."},
+  {name:"Binomial Coefficient",formula:"C(n,k) = n! / (k!(n-k)!)",explanation:"Coefficient in binomial expansion."},
+  {name:"Pascal's Triangle",formula:"Each number = sum of two above",explanation:"Visual representation of binomial coefficients."},
+  {name:"Trinomial Expansion",formula:"(a+b+c)^2 = a^2+b^2+c^2+2ab+2ac+2bc",explanation:"Expanding trinomial squares."},
+  {name:"Difference of Squares",formula:"x^2 - y^2 = (x-y)(x+y)",explanation:"Classic factoring rule."},
+];
+
+// Display rules
+const container = document.getElementById("rulesContainer");
+algebraRules.forEach(rule => {
+  const div = document.createElement("div");
+  div.className = "rule";
+  div.innerHTML = `<h2>${rule.name}</h2>
+                   <p><strong>Formula:</strong> ${rule.formula}</p>
+                   <p><strong>Explanation:</strong> ${rule.explanation}</p>`;
+  container.appendChild(div);
+});
+</script>
+</body>
+</html>

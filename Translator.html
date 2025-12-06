@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Translator</title>
+
+  <style>
+    :root{
+      --bg:#e8f7ff;
+      --card:#ffffff;
+      --accent:#22c1f3;
+      --accent2:#2db7e6;
+      --text:#06304a;
+      --muted:#557a90;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:linear-gradient(180deg,var(--bg),#f3fbff);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px;margin:25px auto;padding:15px}
+    .top{display:flex;align-items:center;gap:15px}
+    .logo{
+      width:65px;height:65px;border-radius:15px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      color:white;font-size:24px;font-weight:700;
+      box-shadow:0 6px 20px rgba(34,193,243,0.28);
+    }
+    h1{margin:0;font-size:26px}
+    .lead{margin:4px 0;color:var(--muted)}
+    .card{
+      background:white;border-radius:14px;padding:15px;margin-top:14px;
+      box-shadow:0 5px 18px rgba(5,40,70,0.08)
+    }
+    label{font-size:13px;margin-bottom:5px;display:block;color:var(--muted)}
+    select,input,textarea{
+      width:100%;padding:10px;border:1px solid #d9eff7;
+      border-radius:10px;background:rgba(255,255,255,0.7);
+      outline:none;
+    }
+    textarea{min-height:220px;resize:vertical}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button{
+      padding:10px 14px;border:0;border-radius:10px;color:white;
+      background:var(--accent);cursor:pointer;font-weight:600
+    }
+    button.secondary{
+      background:white;color:var(--accent);
+      border:1px solid #bfeaff;
+    }
+    .status{font-size:13px;color:#0b6a9b}
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Tesseract OCR -->
+  <script src="https://unpkg.com/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    (function(){
+      const e = React.createElement;
+      const {useState, useEffect, useRef} = React;
+
+      const LANGS = {
+        auto:"Auto", ar:"Arabic", en:"English", fr:"French", es:"Spanish", de:"German",
+        it:"Italian", ru:"Russian", ja:"Japanese", ko:"Korean", zh:"Chinese", pt:"Portuguese",
+        tr:"Turkish", nl:"Dutch", pl:"Polish", sv:"Swedish", da:"Danish", fi:"Finnish",
+        no:"Norwegian", hi:"Hindi", bn:"Bengali", ur:"Urdu", id:"Indonesian", th:"Thai"
+      };
+
+      function App(){
+        const [src, setSrc] = useState("auto");
+        const [dst, setDst] = useState("en");
+        const [input, setInput] = useState("");
+        const [output, setOutput] = useState("");
+        const [ocrStatus, setOcrStatus] = useState("idle");
+        const [recognizing, setRecognizing] = useState(false);
+
+        const recRef = useRef(null);
+
+        useEffect(()=>{
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if(SR){
+            const r = new SR();
+            r.lang = "ar";
+            r.continuous = true;
+            r.interimResults = false;
+            r.onresult = ev=>{
+              let txt = "";
+              for(let i=0;i<ev.results.length;i++){
+                txt += ev.results[i][0].transcript + " ";
+              }
+              setInput(p=> (p+"\n"+txt).trim());
+            };
+            recRef.current = r;
+          }
+        }, []);
+
+        async function googleTranslate(){
+          if(!input.trim()) return;
+          setOutput("Translating...");
+
+          try{
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${dst}&dt=t&q=${encodeURIComponent(input)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            let txt = "";
+            data[0].forEach(part=> txt += part[0]);
+            setOutput(txt);
+          }catch(err){
+            setOutput("Translation error");
+            console.error(err);
+          }
+        }
+
+        function handleImage(ev){
+          const f = ev.target.files[0];
+          if(!f) return;
+
+          setOcrStatus("loading...");
+          const reader = new FileReader();
+          reader.onload = async ev2=>{
+            try{
+              const {data:{text}} = await Tesseract.recognize(ev2.target.result, "eng", {
+                logger: m=>{ if(m.progress) setOcrStatus(m.status+" "+Math.round(m.progress*100)+"%"); }
+              });
+              setInput(p=> p+"\n"+text);
+              setOcrStatus("done");
+            }catch(e){
+              console.error(e);
+              setOcrStatus("error");
+            }
+          };
+          reader.readAsDataURL(f);
+        }
+
+        function speechToggle(){
+          if(!recRef.current){ alert("Speech not supported"); return; }
+          if(recognizing){
+            recRef.current.stop();
+            setRecognizing(false);
+          }else{
+            recRef.current.start();
+            setRecognizing(true);
+          }
+        }
+
+        function exportTxt(){
+          const blob = new Blob([output || input], {type:"text/plain"});
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "translation.txt";
+          a.click();
+        }
+
+        function exportPdf(){
+          const doc = new window.jspdf.jsPDF();
+          const lines = doc.splitTextToSize(output||input, 180);
+          let y = 10;
+          lines.forEach(l=>{
+            if(y>280){ doc.addPage(); y=10; }
+            doc.text(l,10,y);
+            y+=7;
+          });
+          doc.save("translation.pdf");
+        }
+
+        return e("div",{className:"wrap"},
+          e("div",{className:"top"},
+            e("div",{className:"logo"},"T"),
+            e("div",null,
+              e("h1",null,"Translator"),
+              e("p",{className:"lead"},"Google Translate API • OCR • Speech • PDF/TXT Export")
+            )
+          ),
+
+          e("div",{className:"card"},
+            e("label",null,"Source language"),
+            e("select",{value:src,onChange:ev=>setSrc(ev.target.value)},
+              Object.entries(LANGS).map(([k,v])=> e("option",{key:k,value:k},v))
+            ),
+
+            e("label",{style:{marginTop:"10px"}},"Target language"),
+            e("select",{value:dst,onChange:ev=>setDst(ev.target.value)},
+              Object.entries(LANGS).filter(([k])=>k!=="auto").map(([k,v])=> 
+                e("option",{key:k,value:k},v)
+              )
+            ),
+
+            e("div",{className:"grid",style:{marginTop:"15px"}},
+              e("div",null,
+                e("label",null,"Input"),
+                e("textarea",{value:input,onChange:ev=>setInput(ev.target.value)}),
+
+                e("div",{className:"actions"},
+                  e("label",{className:"secondary",style:{padding:"10px",cursor:"pointer"}},
+                    "Load Image",
+                    e("input",{type:"file",onChange:handleImage,style:{display:"none"}})
+                  ),
+                  e("button",{onClick:speechToggle}, recognizing?"Stop":"Speak"),
+                  e("button",{onClick:googleTranslate},"Translate"),
+                  e("button",{className:"secondary",onClick:()=>{setInput("");setOutput("");}},"Clear")
+                ),
+
+                e("div",{className:"status"},"OCR: "+ocrStatus)
+              ),
+
+              e("div",null,
+                e("label",null,"Output"),
+                e("textarea",{value:output,readOnly:true}),
+
+                e("div",{className:"actions"},
+                  e("button",{onClick:exportTxt},"Export TXT"),
+                  e("button",{onClick:exportPdf},"Export PDF")
+                )
+              )
+            )
+          )
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+    })();
+  </script>
+
+</body>
+</html>

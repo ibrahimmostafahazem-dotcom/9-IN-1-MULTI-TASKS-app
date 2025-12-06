@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta-name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notepad</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #ff7b7b, #ffbf5e, #6eff9c, #6fb7ff, #d56fff);
+            background-size: 400% 400%;
+            animation: gradientMove 12s ease infinite;
+            font-family: Arial, sans-serif;
+            transition: 0.3s;
+        }
+
+        body.dark {
+            filter: brightness(0.65);
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            transition: 0.3s;
+        }
+
+        body.dark .container {
+            background: rgba(0,0,0,0.45);
+            color: white;
+        }
+
+        textarea {
+            width: 100%;
+            height: 350px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #aaa;
+            font-size: 17px;
+            resize: none;
+            background: rgba(255,255,255,0.7);
+        }
+
+        body.dark textarea {
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: 1px solid #555;
+        }
+
+        .info {
+            margin-top: 12px;
+            font-size: 16px;
+            text-align: right;
+            padding: 5px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 8px;
+        }
+
+        body.dark .info {
+            background: rgba(0,0,0,0.5);
+            color: white;
+        }
+
+        .tools {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        button, select, input {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background: rgba(255,255,255,0.7);
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: rgba(255,255,255,0.9);
+        }
+
+        body.dark button, body.dark select, body.dark input {
+            background: rgba(0,0,0,0.6);
+            color: white;
+        }
+
+        .notes-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 12px;
+        }
+
+        body.dark .notes-list {
+            background: rgba(0,0,0,0.4);
+        }
+
+        .note-item {
+            padding: 10px;
+            background: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .pin {
+            background: gold !important;
+        }
+
+        .deleteBtn {
+            background: #ff4c4c;
+            padding: 5px 10px;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .pinBtn {
+            background: #ffc400;
+            padding: 5px 10px;
+            color: black;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+
+        .search-box {
+            width: 98%;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="tools">
+        <input type="text" id="noteTitle" placeholder="Note name">
+        <button onclick="saveNote()">Save</button>
+        <button onclick="loadNote()">Load</button>
+        <button onclick="clearNote()">Clear</button>
+
+        <button onclick="exportTXT()">Export TXT</button>
+        <input type="file" id="importFile" accept=".txt" onchange="importTXT()">
+
+        <button onclick="toggleDark()">Dark Mode</button>
+
+        <select id="fontSize" onchange="changeSize()">
+            <option value="14">14px</option>
+            <option value="16" selected>16px</option>
+            <option value="18">18px</option>
+            <option value="20">20px</option>
+            <option value="24">24px</option>
+        </select>
+
+        <button onclick="boldText()">Bold</button>
+        <button onclick="italicText()">Italic</button>
+        <button onclick="underlineText()">Underline</button>
+    </div>
+
+    <textarea id="noteArea" oninput="updateInfo()"></textarea>
+    <div class="info" id="infoBox">0 كلمات — 0 حروف</div>
+
+    <input type="text" class="search-box" id="searchBar" placeholder="Search..." oninput="updateNotesList()">
+
+    <div class="notes-list" id="notesList"></div>
+</div>
+
+<script>
+updateNotesList();
+
+function updateInfo() {
+    let text = document.getElementById("noteArea").value.trim();
+    let words = text === "" ? 0 : text.split(/\s+/).length;
+    let chars = text.length;
+    document.getElementById("infoBox").textContent = words + " كلمات — " + chars + " حروف";
+}
+
+function saveNote() {
+    let title = document.getElementById("noteTitle").value.trim();
+    let content = document.getElementById("noteArea").value;
+
+    if (title === "") {
+        alert("اكتب اسم للملاحظة.");
+        return;
+    }
+
+    let notes = JSON.parse(localStorage.getItem("notesList") || "{}");
+
+    if (!notes[title]) notes[title] = { content: content, pin: false };
+    else notes[title].content = content;
+
+    localStorage.setItem("notesList", JSON.stringify(notes));
+    updateNotesList();
+}
+
+function loadNote() {
+    let title = document.getElementById("noteTitle").value.trim();
+    let notes = JSON.parse(localStorage.getItem("notesList") || "{}");
+
+    if (notes[title]) {
+        document.getElementById("noteArea").value = notes[title].content;
+        updateInfo();
+    }
+}
+
+function clearNote() {
+    document.getElementById("noteArea").value = "";
+    updateInfo();
+}
+
+function deleteNote(title) {
+    let notes = JSON.parse(localStorage.getItem("notesList") || "{}");
+    delete notes[title];
+    localStorage.setItem("notesList", JSON.stringify(notes));
+    updateNotesList();
+}
+
+function togglePin(title) {
+    let notes = JSON.parse(localStorage.getItem("notesList") || "{}");
+    notes[title].pin = !notes[title].pin;
+    localStorage.setItem("notesList", JSON.stringify(notes));
+    updateNotesList();
+}
+
+function updateNotesList() {
+    let listBox = document.getElementById("notesList");
+    let search = document.getElementById("searchBar").value.toLowerCase();
+    let notes = JSON.parse(localStorage.getItem("notesList") || "{}");
+
+    listBox.innerHTML = "";
+
+    let entries = Object.entries(notes);
+
+    entries.sort((a, b) => b[1].pin - a[1].pin);
+
+    for (let [title, data] of entries) {
+        if (!title.toLowerCase().includes(search)) continue;
+
+        let item = document.createElement("div");
+        item.className = "note-item";
+        if (data.pin) item.classList.add("pin");
+
+        let titleSpan = document.createElement("span");
+        titleSpan.textContent = title;
+
+        titleSpan.onclick = () => {
+            document.getElementById("noteTitle").value = title;
+            document.getElementById("noteArea").value = data.content;
+            updateInfo();
+        };
+
+        let pinBtn = document.createElement("span");
+        pinBtn.className = "pinBtn";
+        pinBtn.textContent = data.pin ? "Unpin" : "Pin";
+        pinBtn.onclick = (e) => { e.stopPropagation(); togglePin(title); };
+
+        let del = document.createElement("span");
+        del.className = "deleteBtn";
+        del.textContent = "Delete";
+        del.onclick = (e) => { e.stopPropagation(); deleteNote(title); };
+
+        item.appendChild(titleSpan);
+        item.appendChild(pinBtn);
+        item.appendChild(del);
+
+        listBox.appendChild(item);
+    }
+}
+
+function changeSize() {
+    document.getElementById("noteArea").style.fontSize =
+        document.getElementById("fontSize").value + "px";
+}
+
+function boldText() { toggleStyle("fontWeight", "bold", "normal"); }
+function italicText() { toggleStyle("fontStyle", "italic", "normal"); }
+function underlineText() { toggleStyle("textDecoration", "underline", "none"); }
+
+function toggleStyle(style, active, inactive) {
+    let area = document.getElementById("noteArea");
+    area.style[style] = area.style[style] === active ? inactive : active;
+}
+
+function exportTXT() {
+    let text = document.getElementById("noteArea").value;
+    let title = document.getElementById("noteTitle").value || "note";
+    let blob = new Blob([text], { type: "text/plain" });
+
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = title + ".txt";
+    link.click();
+}
+
+function importTXT() {
+    let file = document.getElementById("importFile").files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = () => {
+        document.getElementById("noteArea").value = reader.result;
+        updateInfo();
+    };
+    reader.readAsText(file);
+}
+
+function toggleDark() {
+    document.body.classList.toggle("dark");
+}
+</script>
+
+</body>
+</html>

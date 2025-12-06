@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FX-991ES Plus Simulator</title>
+<style>
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #dfe6e9;
+    font-family: Arial, sans-serif;
+}
+.calculator {
+    background: #2c3e50;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    width: 420px;
+    position: relative;
+}
+.display {
+    background: #ecf0f1;
+    height: 60px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    text-align: right;
+    font-size: 26px;
+    padding: 10px;
+    overflow-x: auto;
+}
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+button {
+    padding: 15px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #3498db;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+}
+button:hover { background: #2980b9; }
+.function { background: #e67e22; }
+.function:hover { background: #d35400; }
+.equal { background: #27ae60; grid-column: span 2; }
+.equal:hover { background: #1e8449; }
+.zero { grid-column: span 2; }
+.shift, .alpha, .mode {
+    background: #f1c40f; color: #2c3e50;
+}
+.shift.active, .alpha.active { background: #f39c12; color: white; }
+/* Popup menu */
+.popup {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.popup button {
+    width: 100%;
+    margin: 3px 0;
+    background: #34495e;
+}
+.popup button:hover { background: #2c3e50; }
+</style>
+</head>
+<body>
+<div class="calculator">
+    <div class="display" id="display">0</div>
+    <div class="buttons">
+        <button class="shift" id="shiftBtn" onclick="toggleShift()">Shift</button>
+        <button class="alpha" id="alphaBtn" onclick="toggleAlpha()">Alpha</button>
+        <button class="function" onclick="clearDisplay()">C</button>
+        <button class="function" onclick="deleteLast()">DEL</button>
+        <button class="function" onclick="appendOperator('(')">(</button>
+        <button class="function" onclick="appendOperator(')')">)</button>
+
+        <button class="mode" id="modeBtn" onclick="toggleModeMenu()">MODE</button>
+        <button onclick="appendNumber('7')">7</button>
+        <button onclick="appendNumber('8')">8</button>
+        <button onclick="appendNumber('9')">9</button>
+        <button class="function" onclick="appendOperator('/')">÷</button>
+        <button class="function" id="func1" onclick="appendAdvanced('func1')">√</button>
+
+        <button onclick="appendNumber('4')">4</button>
+        <button onclick="appendNumber('5')">5</button>
+        <button onclick="appendNumber('6')">6</button>
+        <button class="function" onclick="appendOperator('*')">×</button>
+        <button class="function" id="func2" onclick="appendAdvanced('func2')">x²</button>
+        <button class="function" id="func3" onclick="appendAdvanced('func3')">x^y</button>
+
+        <button onclick="appendNumber('1')">1</button>
+        <button onclick="appendNumber('2')">2</button>
+        <button onclick="appendNumber('3')">3</button>
+        <button class="function" onclick="appendOperator('-')">-</button>
+        <button class="function" id="func4" onclick="appendAdvanced('func4')">1/x</button>
+        <button class="function" id="func5" onclick="appendAdvanced('func5')">sin</button>
+
+        <button class="zero" onclick="appendNumber('0')">0</button>
+        <button onclick="appendDot()">.</button>
+        <button class="function" onclick="appendOperator('+')">+</button>
+        <button class="function" id="func6" onclick="appendAdvanced('func6')">cos</button>
+        <button class="function" id="func7" onclick="appendAdvanced('func7')">tan</button>
+        <button class="function" onclick="appendFunction('factorial')">x!</button>
+
+        <button class="function" id="func8" onclick="appendAdvanced('func8')">log</button>
+        <button class="function" id="func9" onclick="appendAdvanced('func9')">ln</button>
+        <button class="function" id="func10" onclick="appendAdvanced('func10')">e^x</button>
+        <button class="function" id="func11" onclick="appendAdvanced('func11')">10^x</button>
+        <button class="function" onclick="appendConstant('Math.PI')">π</button>
+        <button class="function" onclick="appendConstant('Math.E')">e</button>
+
+        <!-- زر DMS -->
+        <button class="function" id="dmsBtn" onclick="toggleDMS()">°’”</button>
+
+        <button class="equal" onclick="calculate()">=</button>
+    </div>
+
+    <!-- Popup for Mode / Setup -->
+    <div id="popupMenu" class="popup"></div>
+</div>
+
+<script>
+let display = document.getElementById('display');
+let current = '';
+let shiftActive = false;
+let alphaActive = false;
+let radMode = true;
+let mode = 'COMP';
+let ioMode = 'MthIO';
+let dmsMode = false; // false = decimal, true = DMS
+
+function appendNumber(num){ current += num; updateDisplay(); }
+function appendDot(){ current += '.'; updateDisplay(); }
+function appendOperator(op){ current += op; updateDisplay(); }
+function appendFunction(fn){ current += fn + '('; updateDisplay(); }
+function appendConstant(constant){ current += constant; updateDisplay(); }
+function toggleSign(){ if(current){ current = current[0]==='-'?current.slice(1):'-'+current; updateDisplay(); } }
+function clearDisplay(){ current=''; updateDisplay(); }
+function deleteLast(){ current=current.slice(0,-1); updateDisplay(); }
+
+function factorial(n){ n=Math.floor(n); if(n<0) return NaN; let res=1; for(let i=2;i<=n;i++) res*=i; return res; }
+function calculate(){
+    try{
+        let expr = current.replace(/!/g,'factorial');
+        let result = Function('factorial','return '+expr)(factorial);
+        current=result.toString();
+        updateDisplay();
+    } catch { current='خطأ'; updateDisplay(); current=''; }
+}
+function updateDisplay(){ display.textContent=current||'0'; }
+function toggleShift(){ shiftActive=!shiftActive; document.getElementById('shiftBtn').classList.toggle('active'); }
+function toggleAlpha(){ alphaActive=!alphaActive; document.getElementById('alphaBtn').classList.toggle('active'); }
+function toggleRadDeg(){ radMode=!radMode; document.getElementById('modeBtn').textContent=radMode?'RAD':'DEG'; }
+
+function appendAdvanced(funcId){
+    let angleFactor = radMode?1:(Math.PI/180);
+    if(shiftActive){
+        switch(funcId){
+            case 'func1': current+='Math.sinh('; break;
+            case 'func2': current+='Math.pow('+current+',2)'; break;
+            case 'func3': current+='Math.pow('; break;
+            case 'func4': current+='1/('+current+')'; break;
+            case 'func5': current+='Math.asin('+current+')'; break;
+            case 'func6': current+='Math.acos('+current+')'; break;
+            case 'func7': current+='Math.atan('+current+')'; break;
+            case 'func8': current+='Math.log2('; break;
+            case 'func9': current+='Math.log('+current+'**2)'; break;
+            case 'func10': current+='Math.exp('+current+'**2)'; break;
+            case 'func11': current+='Math.pow(10,'+current+'**2)'; break;
+        }
+        shiftActive=false; document.getElementById('shiftBtn').classList.remove('active');
+    } else if(alphaActive){
+        alphaActive=false; document.getElementById('alphaBtn').classList.remove('active');
+    } else {
+        switch(funcId){
+            case 'func1': current+='Math.sqrt('; break;
+            case 'func2': current+='**2'; break;
+            case 'func3': current+='Math.pow('; break;
+            case 'func4': current+='1/('+current+')'; break;
+            case 'func5': current+='Math.sin('+current+'*'+angleFactor+')'; break;
+            case 'func6': current+='Math.cos('+current+'*'+angleFactor+')'; break;
+            case 'func7': current+='Math.tan('+current+'*'+angleFactor+')'; break;
+            case 'func8': current+='Math.log10('; break;
+            case 'func9': current+='Math.log('; break;
+            case 'func10': current+='Math.exp('; break;
+            case 'func11': current+='Math.pow(10,'; break;
+        }
+    }
+    updateDisplay();
+}
+
+// ---------------- Mode / Setup ----------------
+let popup = document.getElementById('popupMenu');
+function toggleModeMenu(){
+    popup.innerHTML = '';
+    let options = shiftActive ? 
+        ['MthIO','LineIO','Deg','Rad','Gra','Fix','Sci','Norm'] :
+        ['Comp','Cmplx','Stat','Base-N','EQN','Matrix','Table','Vector'];
+    options.forEach(opt=>{
+        let btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = ()=>{
+            if(shiftActive){ ioMode = opt; shiftActive=false; document.getElementById('shiftBtn').classList.remove('active'); }
+            else { mode = opt; }
+            popup.style.display='none';
+            updateDisplay();
+        };
+        popup.appendChild(btn);
+    });
+    popup.style.display = popup.style.display==='block' ? 'none' : 'block';
+}
+
+// ---------------- DMS Function ----------------
+function toggleDMS() {
+    if(!current) return;
+    let valStr = current.replace(/[^\d.\-]/g, '');
+    let val = parseFloat(valStr);
+    if(isNaN(val)) return;
+
+    if(!dmsMode){
+        let deg = Math.floor(val);
+        let min = Math.floor((val-deg)*60);
+        let sec = ((val-deg)*60 - min)*60;
+        current = `${deg}° ${min}' ${sec.toFixed(2)}"`;
+    } else {
+        let parts = current.match(/(-?\d+)°\s*(\d+)'?\s*(\d+(\.\d+)?)"?/);
+        if(parts){
+            let deg = parseFloat(parts[1]);
+            let min = parseFloat(parts[2]);
+            let sec = parseFloat(parts[3]);
+            current = (deg + min/60 + sec/3600).toString();
+        }
+    }
+    dmsMode = !dmsMode;
+    updateDisplay();
+}
+</script>
+</body>
+</html>

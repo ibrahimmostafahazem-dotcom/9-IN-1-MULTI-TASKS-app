@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR Extractor</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif}
+body{
+background:#0c0f0e;
+color:white;
+padding:20px;
+direction:rtl;
+}
+.container{
+max-width:900px;
+margin:auto;
+background:linear-gradient(135deg,#003300,#00aa44);
+padding:20px;
+border-radius:20px;
+box-shadow:0 0 20px #004d26;
+}
+h1{text-align:center;margin-bottom:20px}
+.upload-area{
+border:3px dashed #0f0;
+padding:40px;
+text-align:center;
+border-radius:15px;
+background:#002b18;
+transition:.3s
+}
+.upload-area.dragover{
+background:#004d26;
+border-color:#55ff99;
+}
+.images-list{
+margin-top:20px;
+display:flex;
+flex-direction:column;
+gap:15px;
+}
+.image-item{
+background:#00331f;
+padding:10px;
+border-radius:10px;
+display:flex;
+gap:15px;
+align-items:center;
+cursor:grab;
+}
+.image-item:active{cursor:grabbing}
+.image-item img{
+width:110px;
+height:110px;
+object-fit:cover;
+border-radius:8px;
+}
+.controls{
+display:flex;
+gap:10px;
+margin-top:20px;
+flex-wrap:wrap;
+}
+button{
+padding:10px 18px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+background:#00cc55;
+color:white;
+font-size:15px;
+transition:.3s
+}
+button:hover{background:#009944}
+.progress{
+width:100%;
+height:8px;
+background:#111;
+border-radius:6px;
+overflow:hidden;
+margin-top:6px;
+}
+.progress span{
+display:block;
+height:100%;
+width:0%;
+background:#00ff88;
+}
+textarea{
+width:100%;
+height:180px;
+margin-top:25px;
+padding:12px;
+font-size:15px;
+border-radius:10px;
+background:#001a0f;
+color:#9cffc7;
+border:none;
+resize:vertical;
+}
+.remove-btn{
+background:#ff4444;
+}
+.copy-btn{
+background:#0099ff;
+}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>استخراج النصوص من الصور</h1>
+
+<div id="dropZone" class="upload-area">
+اسحب الصور هنا أو اضغط للاختيار (حتى 100 صورة)
+<input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+</div>
+
+<div class="images-list" id="imageList"></div>
+
+<div class="controls">
+<button id="extractBtn">استخراج النصوص</button>
+<button id="downloadTxt">تصدير TXT</button>
+<button id="downloadPdf">تصدير PDF</button>
+<button id="copyAll" class="copy-btn">نسخ الجميع</button>
+<button id="toggleSplit">تقسيم نص PDF الطويل</button>
+</div>
+
+<textarea id="output" placeholder="سيظهر النص المستخرج هنا..."></textarea>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+
+<script>
+let images=[];
+let splitPdf=false;
+
+document.getElementById("dropZone").addEventListener("click",()=>fileInput.click());
+
+dropZone.addEventListener("dragover",e=>{
+e.preventDefault();
+dropZone.classList.add("dragover");
+});
+dropZone.addEventListener("dragleave",()=>dropZone.classList.remove("dragover"));
+
+dropZone.addEventListener("drop",e=>{
+e.preventDefault();
+dropZone.classList.remove("dragover");
+handleFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener("change",()=>handleFiles(fileInput.files));
+
+function handleFiles(files){
+[...files].slice(0,100-images.length).forEach(file=>{
+let reader=new FileReader();
+reader.onload=()=>{
+images.push({src:reader.result, text:"", id:Date.now()+Math.random()});
+renderImages();
+};
+reader.readAsDataURL(file);
+});
+}
+
+function renderImages(){
+let list=document.getElementById("imageList");
+list.innerHTML="";
+images.forEach((img,i)=>{
+let div=document.createElement("div");
+div.className="image-item";
+div.draggable=true;
+div.dataset.index=i;
+
+div.innerHTML=`
+<img src="${img.src}">
+<div style="flex:1">
+<div class="progress"><span id="p${img.id}"></span></div>
+</div>
+<button class="remove-btn" onclick="removeImg(${i})">حذف</button>
+`;
+list.appendChild(div);
+});
+
+enableSorting();
+}
+function removeImg(i){
+images.splice(i,1);
+renderImages();
+}
+
+function enableSorting(){
+let drags=document.querySelectorAll(".image-item");
+drags.forEach(item=>{
+item.addEventListener("dragstart",e=>{
+e.dataTransfer.setData("index",item.dataset.index);
+});
+item.addEventListener("drop",e=>{
+let from=e.dataTransfer.getData("index");
+let to=item.dataset.index;
+let temp=images[from];
+images[from]=images[to];
+images[to]=temp;
+renderImages();
+});
+item.addEventListener("dragover",e=>e.preventDefault());
+});
+}
+
+async function extractAll(){
+let output="";
+for(let img of images){
+await Tesseract.recognize(img.src,"eng",{logger:m=>{
+let bar=document.getElementById("p"+img.id);
+bar.style.width=(m.progress*100)+"%";
+}}).then(r=>{
+img.text=r.data.text;
+output+=r.data.text+"\n\n";
+});
+}
+document.getElementById("output").value=output;
+}
+document.getElementById("extractBtn").onclick=extractAll;
+
+document.getElementById("copyAll").onclick=()=>{
+navigator.clipboard.writeText(output.value);
+};
+
+document.getElementById("toggleSplit").onclick=()=>{
+splitPdf=!splitPdf;
+alert(splitPdf?"سيتم تقسيم النص":"لن يتم التقسيم");
+};
+
+document.getElementById("downloadTxt").onclick=()=>{
+let blob=new Blob([output.value],{type:"text/plain"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="output.txt";
+a.click();
+};
+
+document.getElementById("downloadPdf").onclick=()=>{
+let {jsPDF}=window.jspdf;
+let pdf=new jsPDF();
+let text=output.value.split(splitPdf?500:2000);
+text.forEach((chunk,i)=>{
+if(i>0) pdf.addPage();
+pdf.text(chunk,10,10);
+});
+pdf.save("output.pdf");
+};
+</script>
+
+</body>
+</html>

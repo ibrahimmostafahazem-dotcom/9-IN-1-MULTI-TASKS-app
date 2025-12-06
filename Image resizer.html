@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch Image Resizer</title>
+<style>
+  /* General Styles */
+  body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #74ABE2, #5563DE);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 10px;
+      min-height: 100vh;
+  }
+
+  h2 {
+      color: #fff;
+      margin-bottom: 25px;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+      text-align: center;
+  }
+
+  /* Buttons */
+  button {
+      background-color: #fff;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  button:hover {
+      background-color: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+  }
+
+  /* Drop Zone */
+  #dropZone {
+      border: 2px dashed #fff;
+      border-radius: 15px;
+      width: 320px;
+      height: 180px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-weight: bold;
+      margin-bottom: 20px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+      text-align: center;
+  }
+
+  #dropZone:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: #ffd700;
+      color: #ffd700;
+  }
+
+  /* Inputs */
+  input[type="number"] {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 80px;
+      text-align: center;
+      margin-left: 5px;
+  }
+
+  label {
+      color: #fff;
+      font-weight: bold;
+      margin-right: 10px;
+  }
+
+  /* Checkbox */
+  input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 5px;
+  }
+
+  /* Preview Container */
+  .preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 25px;
+      justify-content: center;
+  }
+
+  .preview img {
+      max-width: 150px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+  }
+
+  .preview img:hover {
+      transform: scale(1.05);
+  }
+
+  .preview a {
+      display: block;
+      text-align: center;
+      background: #ffd700;
+      color: #333;
+      font-weight: bold;
+      padding: 5px 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+  }
+
+  .preview a:hover {
+      background: #ffc107;
+      transform: translateY(-2px);
+  }
+</style>
+</head>
+<body>
+
+<button id="langBtn">English</button>
+
+<h2 id="title">تغيير حجم عدة صور</h2>
+
+<div id="dropZone">اسحب وأسقط الصور هنا أو اضغط للاختيار</div>
+<input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
+<br>
+<label id="widthLabel">العرض: <input type="number" id="widthInput" placeholder="px"></label>
+<label id="heightLabel">الارتفاع: <input type="number" id="heightInput" placeholder="px"></label>
+<br>
+<label><input type="checkbox" id="maintainAspect" checked> <span id="aspectText">الحفاظ على نسبة الأبعاد</span></label>
+<br>
+<button onclick="resizeAll()" id="resizeBtn">تغيير حجم كل الصور</button>
+
+<div class="preview" id="previewContainer"></div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+let lang = 'ar'; // default language Arabic
+
+const translations = {
+    ar: {
+        title: "تغيير حجم عدة صور",
+        dropZone: "اسحب وأسقط الصور هنا أو اضغط للاختيار",
+        widthLabel: "العرض:",
+        heightLabel: "الارتفاع:",
+        aspectText: "الحفاظ على نسبة الأبعاد",
+        resizeBtn: "تغيير حجم كل الصور",
+        downloadText: "تحميل ",
+        langBtn: "English",
+        alertSelect: "اختر صور أولاً"
+    },
+    en: {
+        title: "Batch Image Resizer",
+        dropZone: "Drag & Drop images here or click to select",
+        widthLabel: "Width:",
+        heightLabel: "Height:",
+        aspectText: "Maintain Aspect Ratio",
+        resizeBtn: "Resize All Images",
+        downloadText: "Download ",
+        langBtn: "العربية",
+        alertSelect: "Please select images first"
+    }
+};
+
+// Language switch button
+document.getElementById('langBtn').addEventListener('click', () => {
+    lang = lang === 'ar' ? 'en' : 'ar';
+    updateLanguage();
+});
+
+function updateLanguage() {
+    document.getElementById('title').textContent = translations[lang].title;
+    document.getElementById('dropZone').textContent = translations[lang].dropZone;
+    document.getElementById('widthLabel').firstChild.textContent = translations[lang].widthLabel + " ";
+    document.getElementById('heightLabel').firstChild.textContent = translations[lang].heightLabel + " ";
+    document.getElementById('aspectText').textContent = translations[lang].aspectText;
+    document.getElementById('resizeBtn').textContent = translations[lang].resizeBtn;
+    document.getElementById('langBtn').textContent = translations[lang].langBtn;
+}
+
+// Batch resize code
+const dropZone = document.getElementById('dropZone');
+const imageInput = document.getElementById('imageInput');
+const previewContainer = document.getElementById('previewContainer');
+let files = [];
+
+dropZone.addEventListener('click', () => imageInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#ffd700'; });
+dropZone.addEventListener('dragleave', () => dropZone.style.borderColor = '#fff');
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#fff';
+    files = Array.from(e.dataTransfer.files);
+    showPreviews();
+});
+imageInput.addEventListener('change', () => {
+    files = Array.from(imageInput.files);
+    showPreviews();
+});
+
+function showPreviews() {
+    previewContainer.innerHTML = '';
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            previewContainer.appendChild(img);
+        }
+        reader.readAsDataURL(file);
+    });
+}
+
+function resizeAll() {
+    const width = parseInt(document.getElementById('widthInput').value);
+    const height = parseInt(document.getElementById('heightInput').value);
+    const maintainAspect = document.getElementById('maintainAspect').checked;
+
+    if (files.length === 0) return alert(translations[lang].alertSelect);
+
+    previewContainer.innerHTML = '';
+
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                let newWidth = width || img.width;
+                let newHeight = height || img.height;
+
+                if (maintainAspect) {
+                    const aspect = img.width / img.height;
+                    if (width && !height) newHeight = Math.round(width / aspect);
+                    else if (!width && height) newWidth = Math.round(height * aspect);
+                    else if (width && height) {
+                        const ratio = Math.min(width / img.width, height / img.height);
+                        newWidth = Math.round(img.width * ratio);
+                        newHeight = Math.round(img.height * ratio);
+                    }
+                }
+
+                const canvas = document.getElementById('canvas');
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                const dataUrl = canvas.toDataURL('image/png');
+
+                const previewImg = document.createElement('img');
+                previewImg.src = dataUrl;
+                previewContainer.appendChild(previewImg);
+
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = "resized_" + file.name;
+                link.textContent = translations[lang].downloadText + file.name;
+                link.style.display = "block";
+                previewContainer.appendChild(link);
+            }
+            img.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+    });
+}
+
+// Initialize language
+updateLanguage();
+</script>
+
+</body>
+</html>
